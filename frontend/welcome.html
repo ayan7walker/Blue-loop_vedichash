@@ -89,61 +89,101 @@ Logout
 </div>
 
 </div>
-
 <script>
 
-// check token
-const token = localStorage.getItem("token");
-
-if(!token){
-
-window.location.href="/";
-
-}
-
-// call backend
-fetch("/api/profile",{
-
-headers:{
-Authorization: "Bearer " + token
-}
-
-})
-.then(res=>{
-
-if(!res.ok){
-
-throw new Error("Unauthorized");
-
-}
-
-return res.json();
-
-})
-.then(data=>{
-
-document.getElementById("loading").style.display="none";
-
-document.getElementById("userSection").classList.remove("hidden");
-
-document.getElementById("username").innerText=data.username;
-
-})
-.catch(()=>{
-
-window.location.href="/";
-
-});
-
-function logout(){
-
-localStorage.removeItem("token");
-
-window.location.href="/";
-
-}
-
-</script>
+    // ============================================
+    // DO NOT REDIRECT IMMEDIATELY
+    // ============================================
+    
+    const token = localStorage.getItem("token");
+    
+    if (!token || token === "undefined" || token === "null") {
+    
+        console.log("No token found");
+    
+        localStorage.clear();
+    
+        window.location.href = "/";
+    
+    } else {
+    
+        loadProfile();
+    
+    }
+    
+    
+    // ============================================
+    // LOAD PROFILE SAFELY
+    // ============================================
+    
+    async function loadProfile(){
+    
+        try{
+    
+            console.log("Token:", token);
+    
+            const res = await fetch("/api/profile",{
+    
+                method: "GET",
+    
+                headers:{
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+    
+            });
+    
+            console.log("Response status:", res.status);
+    
+            if(res.status === 401){
+    
+                console.log("Unauthorized - clearing token");
+    
+                localStorage.clear();
+    
+                window.location.href = "/";
+    
+                return;
+            }
+    
+            const data = await res.json();
+    
+            console.log("Profile data:", data);
+    
+            document.getElementById("loading").style.display="none";
+    
+            document.getElementById("userSection").classList.remove("hidden");
+    
+            document.getElementById("username").innerText =
+                data.user.username;
+    
+        }
+        catch(err){
+    
+            console.error("Profile error:", err);
+    
+            localStorage.clear();
+    
+            window.location.href = "/";
+    
+        }
+    
+    }
+    
+    
+    // ============================================
+    // LOGOUT
+    // ============================================
+    
+    function logout(){
+    
+        localStorage.clear();
+    
+        window.location.href = "/";
+    
+    }
+    
+    </script>
 
 </body>
 </html>

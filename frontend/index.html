@@ -405,221 +405,227 @@
   </div>
   
 
-  
-   <script>
+  <script>
 
-// ============================================
-// AUTO REDIRECT IF ALREADY LOGGED IN
-// ============================================
-
-const existingToken = localStorage.getItem("token");
-
-if(existingToken){
-    window.location.href = "/welcome.html";
-}
-
-
-// ============================================
-// Backend API Base URL
-// ============================================
-
-const API_BASE = "http://localhost:5000/api";
-
-
-// ============================================
-// DOM Elements
-// ============================================
-
-const loginForm = document.getElementById("login-form");
-
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-
-const loginBtn = document.getElementById("login-btn");
-const loginBtnText = document.getElementById("login-btn-text");
-const loginSpinner = document.getElementById("login-spinner");
-
-const usernameError = document.getElementById("username-error");
-const passwordError = document.getElementById("password-error");
-const generalError = document.getElementById("general-error");
-
-
-// ============================================
-// LOGIN SUBMIT
-// ============================================
-
-loginForm.addEventListener("submit", async function (e) {
-
-    e.preventDefault();
-
-    hideErrors();
-
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    let hasError = false;
-
-    if (!username) {
-        showError(usernameError, "Username required");
-        hasError = true;
+    // ============================================
+    // SAFE TOKEN CHECK FUNCTION (FIXED)
+    // ============================================
+    
+    function isValidToken(token) {
+        return (
+            token &&
+            token !== "undefined" &&
+            token !== "null" &&
+            token.trim() !== ""
+        );
     }
-
-    if (!password) {
-        showError(passwordError, "Password required");
-        hasError = true;
+    
+    
+    // ============================================
+    // AUTO REDIRECT IF ALREADY LOGGED IN (FIXED)
+    // ============================================
+    
+    const existingToken = localStorage.getItem("token");
+    
+    if (isValidToken(existingToken)) {
+        window.location.href = "/welcome.html";
     }
-
-    if (hasError) return;
-
-    setLoading(true);
-
-    try {
-
-        const response = await fetch(`${API_BASE}/login`, {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-                username,
-                password
-            })
-
-        });
-
-        const data = await response.json();
-
-        setLoading(false);
-
-        if (response.ok) {
-
-            // ✅ STORE TOKEN
-            localStorage.setItem("token", data.token);
-
-            showSuccess();
-
-            // ✅ REDIRECT
-            setTimeout(()=>{
-                window.location.href = "/welcome.html";
-            },1500);
-
+    
+    
+    // ============================================
+    // Backend API Base URL
+    // ============================================
+    
+    const API_BASE = "/api"; // FIXED (no hardcoded localhost)
+    
+    
+    // ============================================
+    // DOM Elements
+    // ============================================
+    
+    const loginForm = document.getElementById("login-form");
+    
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+    
+    const loginBtn = document.getElementById("login-btn");
+    const loginBtnText = document.getElementById("login-btn-text");
+    const loginSpinner = document.getElementById("login-spinner");
+    
+    const usernameError = document.getElementById("username-error");
+    const passwordError = document.getElementById("password-error");
+    const generalError = document.getElementById("general-error");
+    
+    
+    // ============================================
+    // LOGIN SUBMIT
+    // ============================================
+    
+    loginForm.addEventListener("submit", async function (e) {
+    
+        e.preventDefault();
+    
+        hideErrors();
+    
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+    
+        let hasError = false;
+    
+        if (!username) {
+            showError(usernameError, "Username required");
+            hasError = true;
         }
-        else {
-
+    
+        if (!password) {
+            showError(passwordError, "Password required");
+            hasError = true;
+        }
+    
+        if (hasError) return;
+    
+        setLoading(true);
+    
+        try {
+    
+            const response = await fetch(`${API_BASE}/login`, {
+    
+                method: "POST",
+    
+                headers: {
+                    "Content-Type": "application/json"
+                },
+    
+                body: JSON.stringify({
+                    username,
+                    password
+                })
+    
+            });
+    
+            const data = await response.json();
+    
+            setLoading(false);
+    
+            if (response.ok && isValidToken(data.token)) {
+    
+                // STORE TOKEN SAFELY
+                localStorage.setItem("token", data.token);
+    
+                showSuccess();
+    
+                setTimeout(() => {
+                    window.location.href = "/welcome.html";
+                }, 1000);
+    
+            }
+            else {
+    
+                showError(
+                    generalError,
+                    data.message || "Login failed"
+                );
+    
+            }
+    
+        }
+        catch (error) {
+    
+            setLoading(false);
+    
             showError(
                 generalError,
-                data.message || "Login failed"
+                "Cannot connect to server"
             );
-
+    
+            console.error(error);
+    
         }
-
+    
+    });
+    
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function showError(element, message){
+    
+        element.textContent = message;
+        element.classList.remove("hidden");
+    
     }
-    catch (error) {
-
-        setLoading(false);
-
-        showError(
-            generalError,
-            "Cannot connect to server"
+    
+    function hideErrors(){
+    
+        usernameError.classList.add("hidden");
+        passwordError.classList.add("hidden");
+        generalError.classList.add("hidden");
+    
+    }
+    
+    function setLoading(state){
+    
+        loginBtn.disabled = state;
+        loginSpinner.classList.toggle("hidden", !state);
+    
+        loginBtnText.textContent =
+            state ? "Signing in..." : "Sign In";
+    
+    }
+    
+    function showSuccess(){
+    
+        document
+        .getElementById("success-modal")
+        .classList.remove("hidden");
+    
+    }
+    
+    
+    // ============================================
+    // PASSWORD TOGGLE
+    // ============================================
+    
+    const togglePasswordBtn =
+        document.getElementById("toggle-password");
+    
+    if(togglePasswordBtn){
+    
+        togglePasswordBtn.addEventListener(
+            "click",
+            function(){
+    
+                const isPassword =
+                    passwordInput.type === "password";
+    
+                passwordInput.type =
+                    isPassword ? "text" : "password";
+    
+            }
         );
-
-        console.error(error);
-
+    
     }
-
-});
-
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-function showError(element, message){
-
-    element.textContent = message;
-
-    element.classList.remove("hidden");
-
-}
-
-function hideErrors(){
-
-    usernameError.classList.add("hidden");
-
-    passwordError.classList.add("hidden");
-
-    generalError.classList.add("hidden");
-
-}
-
-function setLoading(state){
-
-    loginBtn.disabled = state;
-
-    loginSpinner.classList.toggle("hidden", !state);
-
-    loginBtnText.textContent =
-        state ? "Signing in..." : "Sign In";
-
-}
-
-function showSuccess(){
-
-    document
-    .getElementById("success-modal")
-    .classList.remove("hidden");
-
-}
-
-
-// ============================================
-// PASSWORD TOGGLE
-// ============================================
-
-const togglePasswordBtn =
-    document.getElementById("toggle-password");
-
-if(togglePasswordBtn){
-
-    togglePasswordBtn.addEventListener(
-        "click",
-        function(){
-
-            const isPassword =
-                passwordInput.type === "password";
-
-            passwordInput.type =
-                isPassword ? "text" : "password";
-
-        }
+    
+    
+    // ============================================
+    // SIGNUP REDIRECT
+    // ============================================
+    
+    const signupBtn = document.querySelector(
+        "button[onclick*='Registration page coming soon']"
     );
-
-}
-
-
-// ============================================
-// FIX SIGNUP BUTTON REDIRECT
-// ============================================
-
-const signupBtn = document.querySelector(
-    "button[onclick*='Registration page coming soon']"
-);
-
-if(signupBtn){
-
-    signupBtn.onclick = function(){
-
-        window.location.href = "/signup.html";
-
+    
+    if(signupBtn){
+    
+        signupBtn.onclick = function(){
+            window.location.href = "/signup.html";
+        }
+    
     }
-
-}
-
-</script>
-
+    
+    </script>
+  
   
  </body>
 </html>

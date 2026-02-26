@@ -1,5 +1,189 @@
+
+
+// const User = require("../models/user");
+// const hashPipeline = require("../utils/hashPipeline");
+// const jwt = require("jsonwebtoken");
+
+// const JWT_SECRET = process.env.JWT_SECRET || "vedic_super_secret_key";
+
+
+// // ==============================
+// // REGISTER
+// // ==============================
+// exports.register = async (req, res) => {
+//   try {
+
+//     if (!req.body) {
+//       return res.status(400).json({
+//         message: "Request body missing"
+//       });
+//     }
+
+//     const { username, password } = req.body;
+
+//     if (!username || !password) {
+//       return res.status(400).json({
+//         message: "Username and password required"
+//       });
+//     }
+
+//     const existingUser = await User.findOne({ username });
+
+//     if (existingUser) {
+//       return res.status(400).json({
+//         message: "User already exists"
+//       });
+//     }
+
+//     const password_hash = hashPipeline(password);
+
+//     const user = new User({
+//       username,
+//       password_hash
+//     });
+
+//     await user.save();
+
+//     res.status(201).json({
+//       message: "User registered successfully"
+//     });
+
+//   } catch (error) {
+
+//     console.error(error);
+
+//     res.status(500).json({
+//       message: error.message
+//     });
+
+//   }
+// };
+
+
+// // ==============================
+// // LOGIN
+// // ==============================
+// exports.login = async (req, res) => {
+
+//   try {
+
+//     if (!req.body) {
+//       return res.status(400).json({
+//         message: "Request body missing"
+//       });
+//     }
+
+//     const { username, password } = req.body;
+
+//     if (!username || !password) {
+//       return res.status(400).json({
+//         message: "Username and password required"
+//       });
+//     }
+
+//     const user = await User.findOne({ username });
+
+//     if (!user) {
+//       return res.status(404).json({
+//         message: "User not found"
+//       });
+//     }
+
+//     const password_hash = hashPipeline(password);
+
+//     if (user.password_hash !== password_hash) {
+//       return res.status(401).json({
+//         message: "Invalid password"
+//       });
+//     }
+
+//     // CREATE JWT TOKEN
+//     const token = jwt.sign(
+//       {
+//         id: user._id.toString(),
+//         username: user.username
+//       },
+//       JWT_SECRET,
+//       {
+//         expiresIn: "24h"
+//       }
+//     );
+
+//     res.json({
+//       message: "Login successful",
+//       token,
+//       user: {
+//         id: user._id,
+//         username: user.username
+//       }
+//     });
+
+//   } catch (error) {
+
+//     console.error(error);
+
+//     res.status(500).json({
+//       message: error.message
+//     });
+
+//   }
+
+// };
+
+
+// // ==============================
+// // GET PROFILE (FINAL FIXED)
+// // ==============================
+// exports.getProfile = async (req, res) => {
+
+//   try {
+
+//     if (!req.user || !req.user.id) {
+//       return res.status(401).json({
+//         message: "Unauthorized"
+//       });
+//     }
+
+//     const user = await User.findById(req.user.id);
+
+//     if (!user) {
+//       return res.status(404).json({
+//         message: "User not found"
+//       });
+//     }
+
+//     // ✅ clean response
+//     res.json({
+//       user: {
+//         id: user._id,
+//         username: user.username
+//       }
+//     });
+
+//   } catch (error) {
+
+//     console.error(error);
+
+//     res.status(500).json({
+//       message: error.message
+//     });
+
+//   }
+
+// };
+
+
 const User = require("../models/user");
 const hashPipeline = require("../utils/hashPipeline");
+const jwt = require("jsonwebtoken");
+
+// DO NOT cache at top — read fresh from env
+function getJWTSecret() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET not found in environment variables");
+  }
+  return process.env.JWT_SECRET;
+}
 
 
 // ==============================
@@ -7,12 +191,6 @@ const hashPipeline = require("../utils/hashPipeline");
 // ==============================
 exports.register = async (req, res) => {
   try {
-
-    if (!req.body) {
-      return res.status(400).json({
-        message: "Request body missing"
-      });
-    }
 
     const { username, password } = req.body;
 
@@ -40,8 +218,7 @@ exports.register = async (req, res) => {
     await user.save();
 
     res.status(201).json({
-      message: "User registered successfully",
-      hash: password_hash
+      message: "User registered successfully"
     });
 
   } catch (error) {
@@ -62,12 +239,6 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
 
   try {
-
-    if (!req.body) {
-      return res.status(400).json({
-        message: "Request body missing"
-      });
-    }
 
     const { username, password } = req.body;
 
@@ -93,18 +264,27 @@ exports.login = async (req, res) => {
       });
     }
 
-    // ✅ CREATE JWT TOKEN
-    const jwt = require("jsonwebtoken");
+    // ✅ FIX: read secret at runtime
+    const secret = getJWTSecret();
 
     const token = jwt.sign(
-      { id: user._id, username: user.username },
-      process.env.JWT_SECRET || "vedic_secret_key",
-      { expiresIn: "24h" }
+      {
+        id: user._id.toString(),
+        username: user.username
+      },
+      secret,
+      {
+        expiresIn: "24h"
+      }
     );
 
     res.json({
       message: "Login successful",
-      token
+      token,
+      user: {
+        id: user._id,
+        username: user.username
+      }
     });
 
   } catch (error) {
@@ -121,7 +301,7 @@ exports.login = async (req, res) => {
 
 
 // ==============================
-// GET PROFILE (FIXED)
+// GET PROFILE
 // ==============================
 exports.getProfile = async (req, res) => {
 
@@ -133,7 +313,7 @@ exports.getProfile = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user.id).select("-password_hash");
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({
@@ -142,8 +322,10 @@ exports.getProfile = async (req, res) => {
     }
 
     res.json({
-      message: "Profile fetched successfully",
-      user
+      user: {
+        id: user._id,
+        username: user.username
+      }
     });
 
   } catch (error) {
@@ -157,4 +339,3 @@ exports.getProfile = async (req, res) => {
   }
 
 };
-

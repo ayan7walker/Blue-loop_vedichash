@@ -47,4 +47,5 @@ app.listen(PORT, () => {
   console.log("Server running on port", PORT);
   console.log("Frontend: http://localhost:5000");
   console.log("API: http://localhost:5000/api");
+  console.log("ENV TEST:", process.env.JWT_SECRET);
 });
