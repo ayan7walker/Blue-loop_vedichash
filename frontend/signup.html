@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blue Loop - Sign Up</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+background: linear-gradient(135deg,#0f172a,#1e293b,#0f172a);
+font-family: Inter, sans-serif;
+}
+
+.card{
+background:#1e293b;
+border-radius:16px;
+padding:30px;
+width:400px;
+box-shadow:0 0 40px rgba(14,165,233,0.2);
+}
+</style>
+
+</head>
+
+<body class="flex items-center justify-center min-h-screen text-white">
+
+<div class="card">
+
+<h2 class="text-2xl font-bold text-center mb-6">Create Account</h2>
+
+<form id="signupForm" class="space-y-4">
+
+<input
+id="username"
+type="text"
+placeholder="Username"
+class="w-full p-3 rounded bg-slate-800 border border-slate-600"
+/>
+
+<input
+id="password"
+type="password"
+placeholder="Password"
+class="w-full p-3 rounded bg-slate-800 border border-slate-600"
+/>
+
+<button
+type="submit"
+class="w-full bg-blue-500 hover:bg-blue-600 p-3 rounded font-semibold"
+>
+Sign Up
+</button>
+
+</form>
+
+<p id="message" class="text-center mt-4 text-sm"></p>
+
+<p class="text-center mt-4 text-sm">
+Already have account?
+<a href="/" class="text-blue-400">Login</a>
+</p>
+
+</div>
+
+<script>
+
+const form = document.getElementById("signupForm");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async (e)=>{
+
+e.preventDefault();
+
+const username = document.getElementById("username").value;
+const password = document.getElementById("password").value;
+
+try{
+
+const res = await fetch("/api/register",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+username,
+password
+})
+
+});
+
+const data = await res.json();
+
+if(res.ok){
+
+message.innerHTML = "Signup successful";
+message.style.color="lightgreen";
+
+setTimeout(()=>{
+window.location.href="/";
+},1500);
+
+}else{
+
+message.innerHTML = data.message;
+message.style.color="red";
+
+}
+
+}catch(err){
+
+message.innerHTML="Server error";
+message.style.color="red";
+
+}
+
+});
+
+</script>
+
+</body>
+</html>

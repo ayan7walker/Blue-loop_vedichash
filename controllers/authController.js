@@ -2,20 +2,19 @@ const User = require("../models/user");
 const hashPipeline = require("../utils/hashPipeline");
 
 
+// ==============================
 // REGISTER
+// ==============================
 exports.register = async (req, res) => {
-
   try {
 
-    // SAFETY CHECK
     if (!req.body) {
       return res.status(400).json({
         message: "Request body missing"
       });
     }
 
-    const username = req.body.username;
-    const password = req.body.password;
+    const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({
@@ -54,24 +53,23 @@ exports.register = async (req, res) => {
     });
 
   }
-
 };
 
 
+// ==============================
 // LOGIN
+// ==============================
 exports.login = async (req, res) => {
 
   try {
 
-    // SAFETY CHECK
     if (!req.body) {
       return res.status(400).json({
         message: "Request body missing"
       });
     }
 
-    const username = req.body.username;
-    const password = req.body.password;
+    const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({
@@ -89,19 +87,25 @@ exports.login = async (req, res) => {
 
     const password_hash = hashPipeline(password);
 
-    if (user.password_hash === password_hash) {
-
-      res.json({
-        message: "Login successful"
-      });
-
-    } else {
-
-      res.status(401).json({
+    if (user.password_hash !== password_hash) {
+      return res.status(401).json({
         message: "Invalid password"
       });
-
     }
+
+    // ✅ CREATE JWT TOKEN
+    const jwt = require("jsonwebtoken");
+
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET || "vedic_secret_key",
+      { expiresIn: "24h" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token
+    });
 
   } catch (error) {
 
@@ -114,3 +118,43 @@ exports.login = async (req, res) => {
   }
 
 };
+
+
+// ==============================
+// GET PROFILE (FIXED)
+// ==============================
+exports.getProfile = async (req, res) => {
+
+  try {
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        message: "Unauthorized"
+      });
+    }
+
+    const user = await User.findById(req.user.id).select("-password_hash");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    res.json({
+      message: "Profile fetched successfully",
+      user
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      message: error.message
+    });
+
+  }
+
+};
+
